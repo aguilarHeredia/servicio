@@ -7,111 +7,123 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+public class MainActivity extends AppCompatActivity  {
 
-public class    MainActivity extends AppCompatActivity {
     Button boton;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         boton = (Button) findViewById(R.id.boton);
-
         boton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new consumir().execute();
+                new ObtenerWebService().execute();
             }
         });
-
     }
 
-    public class consumir extends AsyncTask<Void, Void, Boolean> {
+    public class ObtenerWebService extends AsyncTask<String,Void,String>{
 
         @Override
-        protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-            Log.e("Fx", "FerX");
-
-            HttpURLConnection urlConnection = null;
-
-            try {
-                URL url = new URL("http://192.168.1.18/bme/configuracion/");
-                urlConnection = (HttpURLConnection) url.openConnection();
-
-                urlConnection.setDoOutput(true);
-                urlConnection.setChunkedStreamingMode(0);
-
-                OutputStream out = new BufferedOutputStream(urlConnection.getOutputStream());
-                writeStream(out);
-
-                InputStream in = new BufferedInputStream(urlConnection.getInputStream());
-                String s = readStream(in);
-                Log.e("Fx", s);
-
-
-            } catch (Exception e) {
-                Log.e("Fx", String.valueOf(e));
-            } finally {
-                urlConnection.disconnect();
-            }
-
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            return false;
+        protected void onPreExecute() {
+            super.onPreExecute();
         }
 
         @Override
-        protected void onPostExecute(final Boolean success) {
-
-            if (success) {
-                Intent intent = new Intent(getApplicationContext(), NuevaActivity.class);
-                startActivity(intent);
-            } else {
-                Toast.makeText(getApplicationContext(),"error",Toast.LENGTH_LONG).show();
-            }
+        protected void onProgressUpdate(Void... values) {
+            super.onProgressUpdate(values);
         }
 
         @Override
-        protected void onCancelled() {
-
+        protected void onCancelled(String s) {
+            super.onCancelled(s);
         }
 
-        private String readStream(InputStream in) {
+        @Override
+        protected String doInBackground(String... params) {
+
+
+            String resultJSON = "";
             try {
-                ByteArrayOutputStream bo = new ByteArrayOutputStream();
-                int i = in.read();
-                while (i != -1) {
-                    bo.write(i);
-                    i = in.read();
+                URL url = new URL("http://aguilarheredia87.esy.es/jsonhohoho.php");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+                int respuesta = connection.getResponseCode();
+                StringBuilder result = new StringBuilder();
+
+                if (respuesta == HttpURLConnection.HTTP_OK){
+
+                    InputStream in = new BufferedInputStream(connection.getInputStream());
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        result.append(line);        // Paso toda la entrada al StringBuilder
+                    }
+
+                    //Creamos un objeto JSONObject para poder acceder a los atributos (campos) del objeto.
+                    JSONObject respuestaJSON = new JSONObject(result.toString());   //Creo un JSONObject a partir del StringBuilder pasado a cadena
+                    //Accedemos al vector de resultados
+
+                    resultJSON = respuestaJSON.getString("plataforma");
+
+                    /*String resultJSON = respuestaJSON.getString("estado");   // estado es el nombre del campo en el JSON
+                    if (resultJSON=="1"){      // hay alumnos a mostrar
+                        JSONArray alumnosJSON = respuestaJSON.getJSONArray("alumnos");   // estado es el nombre del campo en el JSON
+                        for(int i=0;i<alumnosJSON.length();i++){
+                            devuelve = devuelve +
+                                    alumnosJSON.getJSONObject(i).getString("idestudiante") + " " +
+                                    alumnosJSON.getJSONObject(i).getString("nombre") + " " +
+                                    alumnosJSON.getJSONObject(i).getString("direccion") + "\n";
+
+                        }
+
+                    }
+                    else if (resultJSON=="2"){
+                        devuelve = "No hay alumnos";
+                    }*/
+
+
                 }
-                return bo.toString();
-            } catch (IOException e) {
-                return "";
+
+
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                return resultJSON;
+
             }
-        }
 
-        private void writeStream(OutputStream out) throws IOException {
-            String output = "Hello world";
-
-            out.write(output.getBytes());
-            out.flush();
+        @Override
+        protected void onPostExecute(String s) {
+            Toast.makeText(getApplicationContext(),s,Toast.LENGTH_SHORT).show();
+            //super.onPostExecute(s);
         }
     }
 }
